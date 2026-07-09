@@ -84,6 +84,7 @@ def extract(data: InvoiceInput):
         r"Company\s*:\s*(.+)",
         r"Seller\s*:\s*(.+)",
         r"From\s*:\s*(.+)",
+        r"Issued By\s*:\s*(.+)",
     ]
     
     for pattern in vendor_patterns:
@@ -112,39 +113,39 @@ def extract(data: InvoiceInput):
     # -------------------------
     # Subtotal
     # -------------------------
-
-    # amount_patterns = [
-    #     r"Subtotal\s*:?\s*(?:Rs\.?|INR|₹)?\s*([0-9,]+(?:\.\d+)?)",
-    #     r"Sub\s*Total\s*:?\s*(?:Rs\.?|INR|₹)?\s*([0-9,]+(?:\.\d+)?)",
-    #     r"Net Amount\s*:?\s*(?:Rs\.?|INR|₹)?\s*([0-9,]+(?:\.\d+)?)",
-    #     r"Taxable Value\s*:?\s*(?:Rs\.?|INR|₹)?\s*([0-9,]+(?:\.\d+)?)",
-    #     r"Amount Before Tax\s*:?\s*(?:Rs\.?|INR|₹)?\s*([0-9,]+(?:\.\d+)?)",
-    #     r"Basic Amount\s*:?\s*(?:Rs\.?|INR|₹)?\s*([0-9,]+(?:\.\d+)?)",
-    #     r"Amount\s*:?\s*(?:Rs\.?|INR|₹)?\s*([0-9,]+(?:\.\d+)?)",
-    # ]
     
-    # for pattern in amount_patterns:
-    #     m = re.search(pattern, text, re.I)
-    #     if m:
-    #         amount = parse_money(m.group(1))
-    #         break
-
     amount = None
 
-    for line in text.splitlines():
-        lower = line.lower()
+    amount_patterns = [
+        r"Subtotal.*?([0-9][0-9,]*(?:\.\d+)?)",
+        r"Sub\s*Total.*?([0-9][0-9,]*(?:\.\d+)?)",
+        r"Taxable\s*Value.*?([0-9][0-9,]*(?:\.\d+)?)",
+        r"Taxable\s*Amount.*?([0-9][0-9,]*(?:\.\d+)?)",
+        r"Amount\s*Before\s*Tax.*?([0-9][0-9,]*(?:\.\d+)?)",
+        r"Net\s*Amount.*?([0-9][0-9,]*(?:\.\d+)?)",
+        r"Basic\s*Amount.*?([0-9][0-9,]*(?:\.\d+)?)",
+    ]
     
-        if any(keyword in lower for keyword in [
-            "subtotal",
-            "sub total",
-            "net amount",
-            "taxable value",
-            "amount before tax",
-            "basic amount"
-        ]):
+    for pattern in amount_patterns:
+        m = re.search(pattern, text, re.I | re.S)
+        if m:
+            amount = parse_money(m.group(1))
+            break
+
+    if amount is None:
+        for line in text.splitlines():
+            lower = line.lower()
+    
+            # Skip tax and grand total lines
+            if any(x in lower for x in ["gst", "igst", "cgst", "sgst", "vat"]):
+                continue
+    
+            if lower.startswith("total"):
+                continue
+    
             numbers = re.findall(r"[0-9][0-9,]*(?:\.\d+)?", line)
     
-            if numbers:
+            if "amount" in lower and numbers:
                 amount = parse_money(numbers[-1])
                 break
 
