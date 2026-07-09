@@ -59,67 +59,91 @@ def extract(data: InvoiceInput):
     # -------------------------
     # Invoice Number
     # -------------------------
-
-    m = re.search(
-        r"Invoice\s*(?:No|Number)?[:#]?\s*([A-Za-z0-9\-\/]+)",
-        text,
-        re.I,
-    )
-
-    if m:
-        invoice_no = m.group(1)
+    
+    invoice_patterns = [
+        r"Invoice\s*(?:No|Number)?\s*[:#]\s*([A-Za-z0-9\-\/]+)",
+        r"Inv\s*(?:No|Number)?\s*[:#]\s*([A-Za-z0-9\-\/]+)",
+        r"Bill\s*(?:No|Number)?\s*[:#]\s*([A-Za-z0-9\-\/]+)",
+        r"Ref(?:erence)?\s*[:#]?\s*([A-Za-z0-9\-\/]+)",
+        r"Reference\s*[:#]?\s*([A-Za-z0-9\-\/]+)",
+    ]
+    
+    for pattern in invoice_patterns:
+        m = re.search(pattern, text, re.I)
+        if m:
+            invoice_no = m.group(1).strip()
+            break
 
     # -------------------------
     # Vendor
     # -------------------------
 
-    m = re.search(
-        r"Vendor[:\s]+(.+)",
-        text,
-        re.I,
-    )
-
-    if m:
-        vendor = m.group(1).strip()
+    vendor_patterns = [
+        r"Vendor\s*:\s*(.+)",
+        r"Supplier\s*:\s*(.+)",
+        r"Company\s*:\s*(.+)",
+        r"Seller\s*:\s*(.+)",
+        r"From\s*:\s*(.+)",
+    ]
+    
+    for pattern in vendor_patterns:
+        m = re.search(pattern, text, re.I)
+        if m:
+            vendor = m.group(1).strip()
+            break
 
     # -------------------------
     # Date
     # -------------------------
 
-    m = re.search(
-        r"Date[:\s]+([^\n]+)",
-        text,
-        re.I,
-    )
-
-    if m:
-        date = parse_date(m.group(1))
-
+    date_patterns = [
+        r"Date\s*:\s*(.+)",
+        r"Issued\s*:\s*(.+)",
+        r"Invoice Date\s*:\s*(.+)",
+        r"Billing Date\s*:\s*(.+)",
+    ]
+    
+    for pattern in date_patterns:
+        m = re.search(pattern, text, re.I)
+        if m:
+            date = parse_date(m.group(1).strip())
+            break
+            
     # -------------------------
     # Subtotal
     # -------------------------
 
-    m = re.search(
-        r"Subtotal[:\sA-Za-z\.]*([0-9,]+\.\d+)",
-        text,
-        re.I,
-    )
-
-    if m:
-        amount = parse_money(m.group(1))
+    amount_patterns = [
+        r"Subtotal.*?([0-9,]+\.\d+)",
+        r"Net Amount.*?([0-9,]+\.\d+)",
+        r"Taxable Value.*?([0-9,]+\.\d+)",
+        r"Amount Before Tax.*?([0-9,]+\.\d+)",
+    ]
+    
+    for pattern in amount_patterns:
+        m = re.search(pattern, text, re.I)
+        if m:
+            amount = parse_money(m.group(1))
+            break
 
     # -------------------------
     # Tax
     # -------------------------
 
-    m = re.search(
-        r"(?:GST|Tax).*?([0-9,]+\.\d+)",
-        text,
-        re.I,
-    )
-
-    if m:
-        tax = parse_money(m.group(1))
+    tax_patterns = [
+        r"GST.*?([0-9,]+\.\d+)",
+        r"IGST.*?([0-9,]+\.\d+)",
+        r"CGST.*?([0-9,]+\.\d+)",
+        r"SGST.*?([0-9,]+\.\d+)",
+        r"VAT.*?([0-9,]+\.\d+)",
+        r"Tax.*?([0-9,]+\.\d+)",
+    ]
+    
+    for pattern in tax_patterns:
+        m = re.search(pattern, text, re.I)
+        if m:
+            tax = parse_money(m.group(1))
+            break
 
     # -------------------------
     # Currency
