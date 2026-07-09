@@ -113,39 +113,68 @@ def extract(data: InvoiceInput):
     # Subtotal
     # -------------------------
 
-    amount_patterns = [
-        r"Subtotal\s*:?\s*(?:Rs\.?|INR|₹)?\s*([0-9,]+(?:\.\d+)?)",
-        r"Sub\s*Total\s*:?\s*(?:Rs\.?|INR|₹)?\s*([0-9,]+(?:\.\d+)?)",
-        r"Net Amount\s*:?\s*(?:Rs\.?|INR|₹)?\s*([0-9,]+(?:\.\d+)?)",
-        r"Taxable Value\s*:?\s*(?:Rs\.?|INR|₹)?\s*([0-9,]+(?:\.\d+)?)",
-        r"Amount Before Tax\s*:?\s*(?:Rs\.?|INR|₹)?\s*([0-9,]+(?:\.\d+)?)",
-        r"Basic Amount\s*:?\s*(?:Rs\.?|INR|₹)?\s*([0-9,]+(?:\.\d+)?)",
-        r"Amount\s*:?\s*(?:Rs\.?|INR|₹)?\s*([0-9,]+(?:\.\d+)?)",
-    ]
+    # amount_patterns = [
+    #     r"Subtotal\s*:?\s*(?:Rs\.?|INR|₹)?\s*([0-9,]+(?:\.\d+)?)",
+    #     r"Sub\s*Total\s*:?\s*(?:Rs\.?|INR|₹)?\s*([0-9,]+(?:\.\d+)?)",
+    #     r"Net Amount\s*:?\s*(?:Rs\.?|INR|₹)?\s*([0-9,]+(?:\.\d+)?)",
+    #     r"Taxable Value\s*:?\s*(?:Rs\.?|INR|₹)?\s*([0-9,]+(?:\.\d+)?)",
+    #     r"Amount Before Tax\s*:?\s*(?:Rs\.?|INR|₹)?\s*([0-9,]+(?:\.\d+)?)",
+    #     r"Basic Amount\s*:?\s*(?:Rs\.?|INR|₹)?\s*([0-9,]+(?:\.\d+)?)",
+    #     r"Amount\s*:?\s*(?:Rs\.?|INR|₹)?\s*([0-9,]+(?:\.\d+)?)",
+    # ]
     
-    for pattern in amount_patterns:
-        m = re.search(pattern, text, re.I)
-        if m:
-            amount = parse_money(m.group(1))
-            break
+    # for pattern in amount_patterns:
+    #     m = re.search(pattern, text, re.I)
+    #     if m:
+    #         amount = parse_money(m.group(1))
+    #         break
+
+    amount = None
+
+    for line in text.splitlines():
+        lower = line.lower()
+    
+        if any(keyword in lower for keyword in [
+            "subtotal",
+            "sub total",
+            "net amount",
+            "taxable value",
+            "amount before tax",
+            "basic amount"
+        ]):
+            numbers = re.findall(r"[0-9][0-9,]*(?:\.\d+)?", line)
+    
+            if numbers:
+                amount = parse_money(numbers[-1])
+                break
 
     # -------------------------
     # Tax
     # -------------------------
-    tax_patterns = [
-        r"GST.*?([0-9,]+(?:\.\d+)?)",
-        r"IGST.*?([0-9,]+(?:\.\d+)?)",
-        r"CGST.*?([0-9,]+(?:\.\d+)?)",
-        r"SGST.*?([0-9,]+(?:\.\d+)?)",
-        r"VAT.*?([0-9,]+(?:\.\d+)?)",
-        r"Tax.*?([0-9,]+(?:\.\d+)?)",
-    ]
+    # tax_patterns = [
+    #     r"GST.*?([0-9,]+(?:\.\d+)?)",
+    #     r"IGST.*?([0-9,]+(?:\.\d+)?)",
+    #     r"CGST.*?([0-9,]+(?:\.\d+)?)",
+    #     r"SGST.*?([0-9,]+(?:\.\d+)?)",
+    #     r"VAT.*?([0-9,]+(?:\.\d+)?)",
+    #     r"Tax.*?([0-9,]+(?:\.\d+)?)",
+    # ]
     
-    for pattern in tax_patterns:
-        m = re.search(pattern, text, re.I)
-        if m:
-            tax = parse_money(m.group(1))
-            break
+    tax = None
+
+    for line in text.splitlines():
+        lower = line.lower()
+        
+        if any(keyword in lower for keyword in [
+            "gst", "igst", "cgst", "sgst", "vat", "tax"
+        ]):
+            # Find all numbers in the line
+            numbers = re.findall(r"[0-9][0-9,]*(?:\.\d+)?", line)
+        
+            if numbers:
+                # Tax amount is usually the LAST number
+                tax = parse_money(numbers[-1])
+                break
 
     # -------------------------
     # Currency
