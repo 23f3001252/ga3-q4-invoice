@@ -56,6 +56,10 @@ def extract(data: InvoiceInput):
     tax = None
     currency = None
 
+    print("=" * 50)
+    print(data.invoice_text)
+    print("=" * 50)
+    
     # -------------------------
     # Invoice Number
     # -------------------------
