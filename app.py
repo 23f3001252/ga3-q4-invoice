@@ -114,10 +114,13 @@ def extract(data: InvoiceInput):
     # -------------------------
 
     amount_patterns = [
-        r"Subtotal.*?([0-9,]+\.\d+)",
-        r"Net Amount.*?([0-9,]+\.\d+)",
-        r"Taxable Value.*?([0-9,]+\.\d+)",
-        r"Amount Before Tax.*?([0-9,]+\.\d+)",
+        r"Subtotal\s*:?\s*(?:Rs\.?|INR|₹)?\s*([0-9,]+(?:\.\d+)?)",
+        r"Sub\s*Total\s*:?\s*(?:Rs\.?|INR|₹)?\s*([0-9,]+(?:\.\d+)?)",
+        r"Net Amount\s*:?\s*(?:Rs\.?|INR|₹)?\s*([0-9,]+(?:\.\d+)?)",
+        r"Taxable Value\s*:?\s*(?:Rs\.?|INR|₹)?\s*([0-9,]+(?:\.\d+)?)",
+        r"Amount Before Tax\s*:?\s*(?:Rs\.?|INR|₹)?\s*([0-9,]+(?:\.\d+)?)",
+        r"Basic Amount\s*:?\s*(?:Rs\.?|INR|₹)?\s*([0-9,]+(?:\.\d+)?)",
+        r"Amount\s*:?\s*(?:Rs\.?|INR|₹)?\s*([0-9,]+(?:\.\d+)?)",
     ]
     
     for pattern in amount_patterns:
@@ -129,14 +132,13 @@ def extract(data: InvoiceInput):
     # -------------------------
     # Tax
     # -------------------------
-
     tax_patterns = [
-        r"GST.*?([0-9,]+\.\d+)",
-        r"IGST.*?([0-9,]+\.\d+)",
-        r"CGST.*?([0-9,]+\.\d+)",
-        r"SGST.*?([0-9,]+\.\d+)",
-        r"VAT.*?([0-9,]+\.\d+)",
-        r"Tax.*?([0-9,]+\.\d+)",
+        r"GST.*?([0-9,]+(?:\.\d+)?)",
+        r"IGST.*?([0-9,]+(?:\.\d+)?)",
+        r"CGST.*?([0-9,]+(?:\.\d+)?)",
+        r"SGST.*?([0-9,]+(?:\.\d+)?)",
+        r"VAT.*?([0-9,]+(?:\.\d+)?)",
+        r"Tax.*?([0-9,]+(?:\.\d+)?)",
     ]
     
     for pattern in tax_patterns:
