@@ -96,17 +96,48 @@ async def extract(request: Request):
     if "invoice_text" in body:
         text = body.get("invoice_text", "")
         prompt = (
-            "Extract these fields from the invoice text and return JSON with "
-            "EXACTLY these keys: invoice_no, date, vendor, amount, tax, currency.\n"
-            "- date: ISO YYYY-MM-DD\n"
-            "- amount: the SUBTOTAL before tax, as a plain number (no separators)\n"
-            "- tax: the tax amount only, as a plain number\n"
-            "- currency: ISO code (INR, USD, EUR...)\n"
-            "- use null if a field is not present.\n\n"
-            f"TEXT:\n{text}"
-        )
+                "Extract invoice information from the text below.\n\n"
+                "Return ONLY valid JSON with EXACTLY these keys:\n"
+                "{"
+                "\"invoice_no\": string|null,"
+                "\"date\": string|null,"
+                "\"vendor\": string|null,"
+                "\"amount\": number|null,"
+                "\"tax\": number|null,"
+                "\"currency\": string|null"
+                "}\n\n"
+            
+                "Rules:\n"
+                "1. invoice_no = invoice number exactly as written.\n"
+                "2. date must be converted to YYYY-MM-DD.\n"
+                "3. amount = SUBTOTAL BEFORE TAX only.\n"
+                "4. tax = TAX AMOUNT ONLY, NEVER the tax percentage.\n"
+                "5. Preserve decimal places exactly (54.60 -> 54.6, 395.82 -> 395.82).\n"
+                "6. currency must be ISO code such as INR, USD, EUR.\n"
+                "7. If any field is missing, return null.\n"
+                "8. Return ONLY JSON. No explanation.\n\n"
+            
+                f"INVOICE:\n{text}"
+            )
+
+        
         try:
             out = parse_json(await chat([{"role": "user", "content": prompt}]))
+
+            def to_number(x):
+                if x is None:
+                    return None
+                if isinstance(x, (int, float)):
+                    return float(x)
+                try:
+                    x = str(x).replace(",", "").replace("Rs.", "").replace("₹", "").strip()
+                    return float(x)
+                except Exception:
+                    return None
+
+            out["amount"] = to_number(out.get("amount"))
+            out["tax"] = to_number(out.get("tax"))
+            
         except Exception:
             out = {}
         keys = ["invoice_no", "date", "vendor", "amount", "tax", "currency"]
