@@ -125,6 +125,21 @@ audio_history = []      # every Q6 call this session: transcript + extraction + 
 def get_debug():
     return last_debug_info
 
+import re
+
+def normalize_column(col: str) -> str:
+    col = col.strip()
+
+    # Remove spaces before numbers
+    # "점수 1" -> "점수1"
+    # "학생 2" -> "학생2"
+    col = re.sub(r"\s+(\d+)", r"\1", col)
+
+    # Collapse multiple spaces
+    col = re.sub(r"\s+", " ", col)
+
+    return col
+
 @app.get("/transcripts")
 def get_transcripts():
     """Full history of EVERY audio the grader has sent this session — each with its
@@ -303,11 +318,25 @@ async def answer_audio(request: Request):
         raw_llm = await chat([{"role": "user", "content": prompt}], model="gpt-4o", max_tokens=1500)
         last_debug_info["raw_llm"] = raw_llm
         ext = parse_json(raw_llm)
-        columns = ext.get("columns", []) or []
-        data_rows = ext.get("data_rows", []) or []
-        req_stats = ext.get("requested_stats", [])
-        num_rows = ext.get("num_rows")
-        explicit_stats = ext.get("explicit_stats", {})
+        # Normalize column names
+        columns = [normalize_column(c) for c in columns]
+        
+        # Normalize keys inside explicit_stats
+        for stat_name, stat_dict in explicit_stats.items():
+            if isinstance(stat_dict, dict):
+                explicit_stats[stat_name] = {
+                    normalize_column(k): v
+                    for k, v in stat_dict.items()
+                }
+        
+        # Normalize correlation entries
+        if isinstance(explicit_stats.get("correlation"), list):
+            for item in explicit_stats["correlation"]:
+                if isinstance(item, dict):
+                    if "x" in item:
+                        item["x"] = normalize_column(item["x"])
+                    if "y" in item:
+                        item["y"] = normalize_column(item["y"])
     except Exception:
         pass
 
@@ -350,8 +379,10 @@ async def answer_audio(request: Request):
     for sd in (explicit_stats or {}).values():
         if isinstance(sd, dict):
             for k in sd:
+                k = normalize_column(k)
                 if k not in referenced:
                     referenced.append(k)
+    
     for c in referenced:
         if c not in columns:
             columns.append(c)
